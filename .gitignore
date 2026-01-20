@@ -1,0 +1,46 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+env/
+.venv/
+.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+
+# Data files (working copies)
+data/*.csv
+outputs/*.html
+outputs/*.csv
+outputs/*.json
+
+# BUT keep backup folder (in case Snowflake access is lost)
+!data/backup/
+
+# Keep raw shapefiles but ignore large generated files
+data/raw/*.xml
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Claude Code
+.claude/
