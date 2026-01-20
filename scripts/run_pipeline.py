@@ -76,6 +76,9 @@ def main():
     if args.use_snowflake:
         print("Fetching tract info from Snowflake...")
         tract_info = client.get_tract_info()
+        # Ensure GEOID is string type for merge
+        tracts["GEOID"] = tracts["GEOID"].astype(str)
+        tract_info["GEOID"] = tract_info["GEOID"].astype(str)
         tracts = tracts.merge(tract_info[["GEOID", "POP"]], on="GEOID", how="left")
 
     print("Building map...")
