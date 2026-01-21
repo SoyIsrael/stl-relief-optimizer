@@ -208,12 +208,12 @@ with st.sidebar:
 # -----------------------------
 # Filter candidates by type
 # -----------------------------
-candidates_filtered = candidates[candidates.TYPE.isin(site_types)].copy()
+candidates_filtered = candidates[candidates["TYPE"].isin(site_types)].copy()
 
 # -----------------------------
 # Demand selection
 # -----------------------------
-demand = boundaries[boundaries.GEOID.isin(affected_geoids)].copy()
+demand = boundaries[boundaries["GEOID"].isin(affected_geoids)].copy()
 
 # -----------------------------
 # Run simulation
@@ -231,7 +231,7 @@ if run and len(demand) > 0:
 # -----------------------------
 col1, col2, col3, col4 = st.columns(4)
 
-total_pop = demand.POP.sum()
+total_pop = demand["POP"].sum()
 covered_pop = demand.loc[covered_mask, "POP"].sum() if run else 0
 coverage_pct = (covered_pop / total_pop * 100) if total_pop > 0 else 0
 
@@ -246,7 +246,7 @@ col4.metric("Centers Selected", len(selected_sites))
 layers = []
 
 polys = build_polygons(boundaries)
-polys["selected"] = polys.geoid.isin(affected_geoids)
+polys["selected"] = polys["geoid"].isin(affected_geoids)
 polys["NAME"] = "Tract " + polys["geoid"].astype(str)
 polys["TYPE_DISPLAY"] = "Census Tract (Pop: " + polys["pop"].astype(int).astype(str) + ")"
 
@@ -254,7 +254,7 @@ polys["TYPE_DISPLAY"] = "Census Tract (Pop: " + polys["pop"].astype(int).astype(
 layers.append(
     pdk.Layer(
         "PolygonLayer",
-        polys[~polys.selected],
+        polys[~polys["selected"]],
         get_polygon="polygon",
         filled=True,
         stroked=True,
@@ -270,7 +270,7 @@ layers.append(
 layers.append(
     pdk.Layer(
         "PolygonLayer",
-        polys[polys.selected],
+        polys[polys["selected"]],
         get_polygon="polygon",
         filled=True,
         stroked=True,
@@ -296,7 +296,7 @@ if len(demand) > 0:
 
 # Candidate sites (separate layer per type for reliable colors)
 for site_type, color in SITE_COLORS.items():
-    type_data = candidates_filtered[candidates_filtered.TYPE == site_type]
+    type_data = candidates_filtered[candidates_filtered["TYPE"] == site_type]
     if len(type_data) > 0:
         layers.append(
             pdk.Layer(
@@ -329,8 +329,8 @@ if run and len(selected_sites) > 0:
 # Render map
 # -----------------------------
 view_state = pdk.ViewState(
-    latitude=boundaries.LAT.mean(),
-    longitude=boundaries.LON.mean(),
+    latitude=boundaries["LAT"].mean(),
+    longitude=boundaries["LON"].mean(),
     zoom=10.7
 )
 
