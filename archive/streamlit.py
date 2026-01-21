@@ -140,23 +140,12 @@ boundaries = session.sql(f"""
         b."geom_geojson" AS GEOM_GEOJSON,
         b."lat"::FLOAT AS LAT,
         b."lon"::FLOAT AS LON,
-        COALESCE(p.POP::FLOAT, 0) AS POP
+        COALESCE(pc.POP, COALESCE(p.POP, 0))::FLOAT AS POP
     FROM {BOUNDARIES_TABLE} b
     LEFT JOIN {POPS_TABLE} p
       ON TO_VARCHAR(b.GEOID) = TO_VARCHAR(p.GEOID)
-    UNION ALL
-    SELECT
-        TO_VARCHAR(b.GEOID) AS GEOID,
-        b."geom_geojson" AS GEOM_GEOJSON,
-        b."lat"::FLOAT AS LAT,
-        b."lon"::FLOAT AS LON,
-        COALESCE(p.POP::FLOAT, 0) AS POP
-    FROM {BOUNDARIES_TABLE} b
-    LEFT JOIN {POPS_COUNTY_TABLE} p
-      ON TO_VARCHAR(b.GEOID) = TO_VARCHAR(p.GEOID)
-    WHERE TO_VARCHAR(b.GEOID) NOT IN (
-        SELECT DISTINCT TO_VARCHAR(GEOID) FROM {POPS_TABLE}
-    )
+    LEFT JOIN {POPS_COUNTY_TABLE} pc
+      ON TO_VARCHAR(b.GEOID) = TO_VARCHAR(pc.GEOID)
 """).to_pandas()
 
 candidates = session.sql(f"""
