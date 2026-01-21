@@ -13,12 +13,19 @@ st.title("Disaster Relief Distribution Optimizer")
 
 session = get_active_session()
 
+# Display data coverage
+st.info("Data Coverage: St. Louis City (314 block groups) + St. Louis County (748 block groups) = 1,062 total block groups with complete demographic data")
+
 # -----------------------------
 # Table names (EDIT IF NEEDED)
 # Updated for block group architecture (2025)
+# City: 314 block groups (FIPS 510)
+# County: 748 block groups (FIPS 189)
+# Total: 1,062 block groups with complete coverage
 # -----------------------------
 BOUNDARIES_TABLE = "BLOCK_GROUP_BOUNDARIES"
 POPS_TABLE = "BLOCK_GROUP_DEMOGRAPHICS"
+POPS_COUNTY_TABLE = "BLOCK_GROUP_DEMOGRAPHICS_COUNTY"
 CANDIDATES_TABLE = "CANDIDATE_SITES"
 
 # -----------------------------
@@ -133,10 +140,37 @@ boundaries = session.sql(f"""
         b."geom_geojson" AS GEOM_GEOJSON,
         b."lat"::FLOAT AS LAT,
         b."lon"::FLOAT AS LON,
-        COALESCE(p.POP::FLOAT, 0) AS POP
+        COALESCE(p.POP::FLOAT, 0) AS POP,
+        COALESCE(p.Median_HH_Income, 0) AS Median_HH_Income,
+        COALESCE(p.Low_Income_Rate, 0) AS Low_Income_Rate,
+        COALESCE(p.Child_Dependency_Rate, 0) AS Child_Dependency_Rate,
+        COALESCE(p.Elderly_Dependency_Rate, 0) AS Elderly_Dependency_Rate,
+        COALESCE(p.Renter_Rate, 0) AS Renter_Rate,
+        COALESCE(p.No_Internet_Rate, 0) AS No_Internet_Rate,
+        COALESCE(p.No_Car_Rate, 0) AS No_Car_Rate
     FROM {BOUNDARIES_TABLE} b
     LEFT JOIN {POPS_TABLE} p
       ON TO_VARCHAR(b.GEOID) = TO_VARCHAR(p.GEOID)
+    UNION ALL
+    SELECT
+        TO_VARCHAR(b.GEOID) AS GEOID,
+        b."geom_geojson" AS GEOM_GEOJSON,
+        b."lat"::FLOAT AS LAT,
+        b."lon"::FLOAT AS LON,
+        COALESCE(p.POP::FLOAT, 0) AS POP,
+        COALESCE(p.Median_HH_Income, 0) AS Median_HH_Income,
+        COALESCE(p.Low_Income_Rate, 0) AS Low_Income_Rate,
+        COALESCE(p.Child_Dependency_Rate, 0) AS Child_Dependency_Rate,
+        COALESCE(p.Elderly_Dependency_Rate, 0) AS Elderly_Dependency_Rate,
+        COALESCE(p.Renter_Rate, 0) AS Renter_Rate,
+        COALESCE(p.No_Internet_Rate, 0) AS No_Internet_Rate,
+        COALESCE(p.No_Car_Rate, 0) AS No_Car_Rate
+    FROM {BOUNDARIES_TABLE} b
+    LEFT JOIN {POPS_COUNTY_TABLE} p
+      ON TO_VARCHAR(b.GEOID) = TO_VARCHAR(p.GEOID)
+    WHERE TO_VARCHAR(b.GEOID) NOT IN (
+        SELECT DISTINCT TO_VARCHAR(GEOID) FROM {POPS_TABLE}
+    )
 """).to_pandas()
 
 candidates = session.sql(f"""
