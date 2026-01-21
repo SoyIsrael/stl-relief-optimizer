@@ -47,7 +47,7 @@ stl-site-optimizer/
 pip install -r requirements.txt
 ```
 
-### 2. Configure Snowflake (Optional)
+### 2. Configure Snowflake
 
 Copy `.env.example` to `.env` and fill in your Snowflake credentials:
 
@@ -55,35 +55,39 @@ Copy `.env.example` to `.env` and fill in your Snowflake credentials:
 cp .env.example .env
 ```
 
-### 3. Download Census Shapefiles
+### 3. Upload Data to Snowflake (One-time)
 
-Place Missouri census tract shapefiles in `data/raw/`:
+```bash
+# Upload block group boundaries
+python scripts/upload_boundaries.py
 
-- Download from [Census Bureau TIGER/Line](https://www.census.gov/geographies/mapping-files/time-series/geo/tiger-line-file.html)
-- File: `tl_2020_29_tract.shp` (and associated .dbf, .shx, .prj files)
+# Upload block group demographics and vulnerability metrics
+python scripts/upload_pops_data.py
+```
+
+### 4. Download Census Shapefiles (Optional)
+
+Block group shapefiles are included in `data/raw/` for local development or as fallback:
+
+- File: `tl_2020_29_bg.shp` (and associated .dbf, .shx, .prj files)
+- Geographic scope: Missouri (covers St. Louis City FIPS 510 and St. Louis County FIPS 189)
 
 ## Usage
 
 ### Run the Pipeline
 
 ```bash
-# Basic run with base sites
+# Basic run (loads block groups and demographics from Snowflake)
 python scripts/run_pipeline.py
 
 # Generate 500 synthetic candidate sites
 python scripts/run_pipeline.py --generate-candidates 500
 
-# Use Snowflake for data
-python scripts/run_pipeline.py --use-snowflake
+# Use local shapefile instead of Snowflake
+python scripts/run_pipeline.py --use-local-shapefile
 
 # Custom output path
 python scripts/run_pipeline.py --output outputs/my_map.html
-```
-
-### Upload Data to Snowflake
-
-```bash
-python scripts/upload_to_snowflake.py
 ```
 
 ### Using as a Library

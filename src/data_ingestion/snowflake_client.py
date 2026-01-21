@@ -110,6 +110,6 @@ class SnowflakeClient:
         """Fetch block group demographics and vulnerability data from Snowflake."""
         return self.read_table(table_name)
 
-    def get_boundaries(self, table_name: str = "BOUNDARIES") -> pd.DataFrame:
-        """Fetch tract boundaries (GEOID, lat, lon, geom_geojson) from Snowflake."""
+    def get_boundaries(self, table_name: str = "BLOCK_GROUP_BOUNDARIES") -> pd.DataFrame:
+        """Fetch block group boundaries (GEOID, lat, lon, geom_geojson) from Snowflake."""
         return self.read_table(table_name)

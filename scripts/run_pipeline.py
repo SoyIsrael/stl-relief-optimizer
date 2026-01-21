@@ -3,10 +3,10 @@
 Main pipeline script for STL Site Optimizer.
 
 Usage:
-    python scripts/run_pipeline.py [--generate-candidates N] [--output PATH]
+    python scripts/run_pipeline.py [--generate-candidates N] [--output PATH] [--use-local-shapefile]
 
 This script:
-1. Loads block group geometries from local shapefiles
+1. Loads block group geometries from Snowflake (or local shapefile with --use-local-shapefile)
 2. Fetches population and vulnerability data from Snowflake
 3. Loads/generates candidate sites
 4. Builds and saves an interactive map
@@ -20,6 +20,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.data_ingestion import (
     load_stl_block_groups,
+    load_stl_block_groups_from_snowflake,
     get_default_block_group_shapefile_path,
     SnowflakeClient,
 )
@@ -41,17 +42,34 @@ def main():
         default="outputs/stl_map.html",
         help="Output path for the map HTML",
     )
+    parser.add_argument(
+        "--use-local-shapefile",
+        action="store_true",
+        help="Load block group boundaries from local shapefile instead of Snowflake",
+    )
     args = parser.parse_args()
 
     project_root = Path(__file__).parent.parent
-    bg_shapefile_path = get_default_block_group_shapefile_path()
     output_path = project_root / args.output
 
     # Ensure output directory exists
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
     print("Loading block group geometries...")
-    block_groups = load_stl_block_groups(bg_shapefile_path)
+    try:
+        if args.use_local_shapefile:
+            print("  Using local shapefile...")
+            bg_shapefile_path = get_default_block_group_shapefile_path()
+            block_groups = load_stl_block_groups(bg_shapefile_path)
+        else:
+            print("  Loading from Snowflake...")
+            block_groups = load_stl_block_groups_from_snowflake()
+    except Exception as e:
+        print(f"  Warning: Could not load from Snowflake: {e}")
+        print("  Falling back to local shapefile...")
+        bg_shapefile_path = get_default_block_group_shapefile_path()
+        block_groups = load_stl_block_groups(bg_shapefile_path)
+
     print(f"  Loaded {len(block_groups)} block groups")
 
     print("Computing centroids...")

@@ -6,7 +6,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 STL Site Optimizer is a Python-based geospatial analysis tool for identifying optimal service locations across St. Louis City and County. It analyzes census block group demographics, vulnerability metrics, and candidate site locations to support data-driven decisions about civic service placement.
 
-The system uses **block group-level granularity** (smaller geographic units than tracts) with comprehensive vulnerability indicators including economic stress, age dependency, housing quality, and infrastructure access.
+**Key Features:**
+- Block group-level granularity (1062 geographic units vs. ~300 tracts) for precise optimization
+- Comprehensive vulnerability metrics: economic stress, age dependency, housing quality, infrastructure access
+- Centralized Snowflake data warehouse for scalable operations
+- Interactive map visualization with demographic popups
 
 ## Development Environment
 
@@ -21,40 +25,54 @@ cp .env.example .env
 # Edit .env with your Snowflake credentials
 ```
 
-### Required Data
+### Required Data in Snowflake
 
-1. **Block Group Shapefiles**: Download from [Census Bureau TIGER/Line](https://www.census.gov/geographies/mapping-files/time-series/geo/tiger-line-file.html) and place in `data/raw/`:
-   - File: `tl_2020_29_bg.shp` (and associated .dbf, .shx, .prj files)
-   - Geographic scope: Missouri (covers St. Louis City FIPS 510 and St. Louis County FIPS 189)
+All geospatial and demographic data is stored in Snowflake for centralized, scalable access:
 
-2. **BLOCK_GROUP_DEMOGRAPHICS Data**: Population and vulnerability metrics in Snowflake
-   - Source: `data/backup/BLOCK_GROUP_DEMOGRAPHICS.csv` (block group-level demographics)
-   - Upload to Snowflake using: `python scripts/upload_pops_data.py`
-   - Includes 35+ metrics: population, income, SNAP, age dependency, housing, transportation access, internet access
+1. **BLOCK_GROUP_BOUNDARIES** (1062 rows)
+   - Source: `tl_2020_29_bg.shp` shapefile
+   - Columns: GEOID, STATEFP, COUNTYFP, TRACTCE, BLKGRPCE, lat, lon, geom_geojson
+   - Contains block group geometries as GeoJSON
 
-### Snowflake Setup
+2. **BLOCK_GROUP_DEMOGRAPHICS** (1062 rows)
+   - Source: `data/backup/POPS.csv` (created by Mahfud)
+   - Includes: 35+ vulnerability metrics (population, income, SNAP, age dependency, housing, transportation, internet)
+   - Joined with boundaries on GEOID
+
+3. **CANDIDATE_SITES** (1000 rows)
+   - Predefined service location candidates
+
+### Snowflake Initial Setup
 
 ```bash
-# Upload BLOCK_GROUP_DEMOGRAPHICS data to Snowflake (one-time setup)
-python scripts/upload_pops_data.py
+# One-time setup (after configuring .env with credentials)
+python scripts/upload_boundaries.py      # Upload block group geometries from shapefile
+python scripts/upload_pops_data.py       # Upload demographics and vulnerability metrics
 ```
 
-Requires `.env` with Snowflake credentials (see `cp .env.example .env`)
+Configure `.env` with Snowflake credentials: `cp .env.example .env`
 
 ### Running the Pipeline
 
 ```bash
-# Basic run with default candidate sites and BLOCK_GROUP_DEMOGRAPHICS data from Snowflake
+# Basic run (loads block groups and demographics from Snowflake)
 python scripts/run_pipeline.py
 
 # Generate N synthetic candidate sites
 python scripts/run_pipeline.py --generate-candidates 500
 
+# Use local shapefile instead of Snowflake (fallback)
+python scripts/run_pipeline.py --use-local-shapefile
+
 # Custom output path
 python scripts/run_pipeline.py --output outputs/my_map.html
 ```
 
-The pipeline automatically loads block group geometries, merges BLOCK_GROUP_DEMOGRAPHICS data from Snowflake, and generates an interactive map. If Snowflake is unavailable, it proceeds with geometry only.
+**Pipeline flow:**
+1. Loads block group geometries from **Snowflake** (BLOCK_GROUP_BOUNDARIES) by default
+2. Merges demographics from **Snowflake** (BLOCK_GROUP_DEMOGRAPHICS)
+3. Falls back to local shapefile if Snowflake unavailable
+4. Generates interactive HTML map with demographic popups
 
 Main entry point: `scripts/run_pipeline.py`
 
@@ -64,20 +82,21 @@ The codebase is organized into three main modules:
 
 ### 1. Data Ingestion (`src/data_ingestion/`)
 
-Handles loading and fetching data from multiple sources:
+Handles loading and fetching data from Snowflake (primary) or local shapefiles (fallback):
 
-- **shapefile_loader.py**: Loads census block group boundaries from local TIGER/Line shapefiles
-  - `load_stl_block_groups()`: Loads block group geometries and filters for St. Louis City (FIPS 510) and County (FIPS 189)
+- **shapefile_loader.py**: Loads census block group boundaries from multiple sources
+  - `load_stl_block_groups()`: Loads from local `tl_2020_29_bg.shp` shapefile (fallback)
+  - `load_stl_block_groups_from_snowflake()`: **Primary method** - loads geometries from BLOCK_GROUP_BOUNDARIES table, reconstructs GeoJSON
   - `get_default_block_group_shapefile_path()`: Returns path to `tl_2020_29_bg.shp`
   - Returns GeoDataFrame with block group geometries in EPSG:4326
-- **census_api.py**: Fetches population data from Census Bureau ACS API (legacy, currently unused)
+- **snowflake_client.py**: Central interface to Snowflake data warehouse
+  - `get_boundaries()`: Fetches BLOCK_GROUP_BOUNDARIES (geometries as GeoJSON)
+  - `get_tract_info()`: Fetches BLOCK_GROUP_DEMOGRAPHICS (35+ vulnerability metrics)
+  - `get_candidate_sites()`: Fetches CANDIDATE_SITES
+  - Manages connections and queries; reads credentials from `.env`
+- **census_api.py**: Fetches population data from Census Bureau ACS API (legacy, unused)
   - Kept for backward compatibility
-  - Retrieves 5-year estimates for demographic analysis
-- **snowflake_client.py**: Interface to Snowflake for block group demographics
-  - `get_tract_info()`: Fetches BLOCK_GROUP_DEMOGRAPHICS table with 35+ vulnerability metrics
-  - Manages connections and queries for candidate sites and BLOCK_GROUP_DEMOGRAPHICS data
-  - Reads Snowflake credentials from `.env`
-- **__init__.py**: Exports `load_stl_block_groups`, `get_default_block_group_shapefile_path`, and `SnowflakeClient`
+- **__init__.py**: Exports all loading functions and SnowflakeClient
 
 ### 2. Processing (`src/processing/`)
 
@@ -106,19 +125,25 @@ Generates interactive maps:
 ### Data Flow
 
 ```
-Block Group Shapefile → load_stl_block_groups() → block group GeoDataFrame
+PRIMARY (Snowflake):
+  BLOCK_GROUP_BOUNDARIES → load_stl_block_groups_from_snowflake()
               ↓
-          process_tracts() → compute centroids (lat/lon)
+          Reconstruct geometries from GeoJSON → block group GeoDataFrame
               ↓
-    Snowflake BLOCK_GROUP_DEMOGRAPHICS table (census_api.get_tract_info()) → 35+ vulnerability metrics
+          process_tracts() → use/compute centroids
               ↓
-          Merge on GEOID → enriched block groups with demographics
+  BLOCK_GROUP_DEMOGRAPHICS → get_tract_info() → 35+ vulnerability metrics
+              ↓
+          Merge on GEOID → enriched block groups
               ↓
           get_base_sites() OR generate_candidates() → candidate sites
               ↓
           build_stl_map() → Folium map with popups
               ↓
           save_map() → HTML output (outputs/stl_map.html)
+
+FALLBACK (Local):
+  [if Snowflake unavailable] Local tl_2020_29_bg.shp → load_stl_block_groups()
 ```
 
 ## Key Dependencies
@@ -132,15 +157,20 @@ Block Group Shapefile → load_stl_block_groups() → block group GeoDataFrame
 
 ## Important Notes for Development
 
-- **GEOID matching**: The project uses GEOID as the primary identifier for block groups. Always cast to string when merging BLOCK_GROUP_DEMOGRAPHICS data with shapefiles to avoid type mismatches.
-- **Block group vs. tract**: System uses block groups (smallest census geographic unit) not tracts. This provides finer granularity for service location optimization.
-- **BLOCK_GROUP_DEMOGRAPHICS table schema**: 35+ columns including GEOID, Location, POP, and vulnerability metrics. See `data/backup/BLOCK_GROUP_DEMOGRAPHICS_Data_Dictionary.csv` for full documentation.
-- **Snowflake integration**: Pipeline gracefully handles Snowflake unavailability—if connection fails, it proceeds with geometry only (no demographic data).
+- **Snowflake-first architecture**: Block group boundaries and demographics are stored in Snowflake (BLOCK_GROUP_BOUNDARIES, BLOCK_GROUP_DEMOGRAPHICS) as the primary data source for team collaboration and version control.
+- **Geometry storage**: Geometries stored as GeoJSON in BLOCK_GROUP_BOUNDARIES.geom_geojson column; automatically reconstructed into Shapely geometries by `load_stl_block_groups_from_snowflake()`.
+- **GEOID matching**: All tables joined on GEOID (12-digit string: state + county + tract + block group). Always cast to string to avoid type mismatches.
+- **Centroids pre-computed**: BLOCK_GROUP_BOUNDARIES includes lat/lon columns from shapefile centroid calculation; `process_tracts()` recomputes if needed.
+- **Block group vs. tract**: System uses block groups (1062 units) not tracts (~300 units). Provides finer granularity for service optimization.
+- **Schema documentation**: See `data/backup/POPS_Data_Dictionary.csv` for BLOCK_GROUP_DEMOGRAPHICS column descriptions (35+ metrics).
+- **Fallback handling**: If Snowflake unavailable, pipeline falls back to local shapefile (`tl_2020_29_bg.shp`). Still requires demographics for full functionality.
 - **Geographic scope**: Fixed to Missouri (FIPS 29), filtered to St. Louis City (510) and County (189).
-- **Output format**: All maps saved to `outputs/` directory (created automatically if needed) as interactive HTML files.
-- **Python version**: Codebase requires Python 3.10+ for type hints and modern syntax.
+- **Output format**: All maps saved to `outputs/` directory (auto-created) as interactive HTML files.
+- **Python version**: Requires Python 3.10+ for type hints and modern syntax.
 
 ## Key Scripts
 
-- `scripts/run_pipeline.py`: Main entry point—loads block groups, fetches BLOCK_GROUP_DEMOGRAPHICS data from Snowflake, generates map
-- `scripts/upload_pops_data.py`: One-time utility to load BLOCK_GROUP_DEMOGRAPHICS.csv into Snowflake (run after initial setup)
+- `scripts/run_pipeline.py`: Main entry point—loads block groups from Snowflake, merges demographics, generates map. Falls back to local shapefile if Snowflake unavailable.
+- `scripts/upload_boundaries.py`: One-time utility to load block group geometries from `tl_2020_29_bg.shp` into BLOCK_GROUP_BOUNDARIES table
+- `scripts/upload_pops_data.py`: One-time utility to load `POPS.csv` into BLOCK_GROUP_DEMOGRAPHICS table
+- `scripts/cleanup_snowflake.py`: Cleanup utility to remove legacy/duplicate tables
