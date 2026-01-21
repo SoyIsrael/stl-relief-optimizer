@@ -117,9 +117,9 @@ def build_polygons(boundaries):
 boundaries = session.sql(f"""
     SELECT
         TO_VARCHAR(b.GEOID) AS GEOID,
-        b.geom_geojson,
-        b.lat::FLOAT AS LAT,
-        b.lon::FLOAT AS LON,
+        b."geom_geojson" AS geom_geojson,
+        b."lat"::FLOAT AS LAT,
+        b."lon"::FLOAT AS LON,
         COALESCE(p.POP::FLOAT, 0) AS POP
     FROM {BOUNDARIES_TABLE} b
     LEFT JOIN {POPS_TABLE} p
