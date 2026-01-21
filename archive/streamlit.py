@@ -279,8 +279,8 @@ if len(polys) == 0:
     st.warning("No polygons available for display. The geometries may not have loaded correctly from Snowflake.")
 else:
     polys["selected"] = polys["geoid"].isin(affected_geoids)
-    polys["NAME"] = "Tract " + polys["geoid"].astype(str)
-    polys["TYPE_DISPLAY"] = "Census Tract (Pop: " + polys["pop"].astype(int).astype(str) + ")"
+    polys["NAME"] = "Block Group " + polys["geoid"].astype(str)
+    polys["TYPE_DISPLAY"] = "Census Block Group (Pop: " + polys["pop"].astype(int).astype(str) + ")"
 
     # Base polygons (unselected) - low opacity to show base map
     layers.append(

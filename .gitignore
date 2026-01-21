@@ -44,3 +44,8 @@ Thumbs.db
 
 # Claude Code
 .claude/
+
+# Node.js dependencies
+node_modules/
+package-lock.json
+dist/

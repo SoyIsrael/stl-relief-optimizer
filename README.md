@@ -1,124 +1,120 @@
-# STL Site Optimizer
+# STL Disaster Relief Distribution Optimizer
 
-Civic site optimization tool for identifying optimal service locations across St. Louis City and County using census tract data and geospatial analysis.
+Geospatial optimization tool for identifying optimal disaster relief distribution center locations across St. Louis City and County.
 
-## Overview
+## Quick Start
 
-This project analyzes census tract demographics and candidate site locations to support data-driven decisions about where to place civic services, community centers, or other public resources in the St. Louis metropolitan area.
+### Web Application (Main)
 
-**Key Features:**
-
-- Census tract boundary visualization with population data
-- Candidate site generation and evaluation
-- Interactive map output for stakeholder review
-- Snowflake integration for scalable data storage
-
-## Tech Stack
-
-| Component     | Technology                    |
-| ------------- | ----------------------------- |
-| Language      | Python 3.10+                  |
-| Geospatial    | GeoPandas, Shapely, Folium    |
-| Data          | Pandas, Census Bureau ACS API |
-| Database      | Snowflake                     |
-| Visualization | Folium (interactive maps)     |
-
-## Project Structure
-
-```
-stl-site-optimizer/
-├── src/                      # Source code
-│   ├── data_ingestion/       # Data loading (Census API, Snowflake, shapefiles)
-│   ├── processing/           # Data processing (centroids, candidate generation)
-│   └── visualization/        # Map building
-├── scripts/                  # CLI entry points
-│   ├── run_pipeline.py       # Main pipeline
-│   └── upload_to_snowflake.py
-├── data/raw/                 # Census shapefiles
-├── outputs/                  # Generated maps
-└── notebooks/                # Jupyter notebooks
-```
-
-## Setup
-
-### 1. Install Dependencies
+The primary interface is a React web app with an interactive deck.gl map for selecting affected areas and optimizing center placement.
 
 ```bash
+# Terminal 1 - Backend API
+cd web/backend
 pip install -r requirements.txt
+uvicorn app.main:app --reload --port 8000
+
+# Terminal 2 - Frontend
+cd web/frontend
+npm install
+npm run dev
 ```
 
-### 2. Configure Snowflake
+Open http://localhost:3000 to access the app.
 
-Copy `.env.example` to `.env` and fill in your Snowflake credentials:
+**Features:**
+- Click block groups on the map to select affected areas
+- Adjust service radius and number of distribution centers
+- Filter by site type (schools, fire stations, libraries, etc.)
+- Responsive design (desktop/mobile)
+- Real-time optimization results with population coverage metrics
 
-```bash
-cp .env.example .env
+## Architecture
+
+### Data
+- **Block Groups**: 1,062 census units (St. Louis City + County)
+- **Demographics**: Population, vulnerability metrics (income, age, housing, internet access)
+- **Candidate Sites**: ~1,000 predefined location options
+- **Storage**: Snowflake data warehouse
+
+### Stack
+| Layer | Technology |
+|-------|-----------|
+| Frontend | React + Vite + Material UI + deck.gl |
+| Backend | FastAPI + Python |
+| Database | Snowflake |
+| Algorithm | Greedy max-coverage optimization |
+
+### File Structure
+```
+.
+├── web/                          # Main React + FastAPI web app
+│   ├── frontend/                 # React app (npm)
+│   │   └── src/components/       # Map, Sidebar, Results
+│   └── backend/                  # FastAPI server
+│       └── app/                  # Routes, optimization, data client
+│
+├── src/                          # Python data pipeline (legacy)
+│   ├── data_ingestion/           # Snowflake client
+│   ├── processing/               # Centroid & candidate generation
+│   └── visualization/            # Folium map builder
+│
+├── scripts/                      # Utility scripts
+│   ├── run_pipeline.py          # Generate static maps
+│   ├── upload_boundaries.py     # Load boundaries to Snowflake
+│   └── upload_pops_data.py      # Load demographics to Snowflake
+│
+└── archive/                      # Historical reference
+    └── streamlit.py              # Legacy Streamlit app
 ```
 
-### 3. Upload Data to Snowflake (One-time)
+## Data Setup
 
+**Required Snowflake tables:**
+1. **BLOCK_GROUP_BOUNDARIES** - Geometries (GeoJSON) + lat/lon
+2. **BLOCK_GROUP_DEMOGRAPHICS** - Population + 35+ vulnerability metrics
+3. **BLOCK_GROUP_DEMOGRAPHICS_COUNTY** - County-specific demographics
+4. **CANDIDATE_SITES** - Service location candidates
+
+**To load initial data:**
 ```bash
-# Upload block group boundaries
 python scripts/upload_boundaries.py
-
-# Upload block group demographics and vulnerability metrics
 python scripts/upload_pops_data.py
 ```
 
-### 4. Download Census Shapefiles (Optional)
-
-Block group shapefiles are included in `data/raw/` for local development or as fallback:
-
-- File: `tl_2020_29_bg.shp` (and associated .dbf, .shx, .prj files)
-- Geographic scope: Missouri (covers St. Louis City FIPS 510 and St. Louis County FIPS 189)
-
-## Usage
-
-### Run the Pipeline
-
+Configure `.env` with Snowflake credentials first:
 ```bash
-# Basic run (loads block groups and demographics from Snowflake)
-python scripts/run_pipeline.py
-
-# Generate 500 synthetic candidate sites
-python scripts/run_pipeline.py --generate-candidates 500
-
-# Use local shapefile instead of Snowflake
-python scripts/run_pipeline.py --use-local-shapefile
-
-# Custom output path
-python scripts/run_pipeline.py --output outputs/my_map.html
+cp .env.example .env
+# Edit with your Snowflake account details
 ```
 
-### Using as a Library
+## Development
 
-```python
-from src.data_ingestion import load_stl_tracts, SnowflakeClient
-from src.processing import process_tracts, generate_candidates
-from src.visualization import build_stl_map, save_map
+See `CLAUDE.md` for detailed architecture and development notes.
 
-# Load and process tracts
-tracts = load_stl_tracts("data/raw/tl_2020_29_tract.shp")
-tracts = process_tracts(tracts)
+### Key Files
+- `web/README.md` - Web app setup and API reference
+- `CLAUDE.md` - Full architecture and development guide
+- `.env.example` - Snowflake configuration template
 
-# Generate candidates
-candidates = generate_candidates(n=100)
+## Algorithm
 
-# Build map
-m = build_stl_map(tracts, candidates)
-save_map(m, "outputs/map.html")
-```
+Greedy max-coverage optimization:
+1. Filter demand (affected block groups) and candidate sites
+2. For each candidate, calculate which block groups it can serve (within radius)
+3. Iteratively select the candidate covering the most uncovered population
+4. Continue until K sites selected or all population covered
 
-## Data Sources
+Result: Population coverage % and list of selected distribution centers.
 
-- **Census Tracts**: [TIGER/Line Shapefiles](https://www.census.gov/geographies/mapping-files/time-series/geo/tiger-line-file.html) (2020)
-- **Population Data**: [American Community Survey 5-Year Estimates](https://www.census.gov/programs-surveys/acs) via Census API
-- **Geographic Scope**: St. Louis City (FIPS 510) and St. Louis County (FIPS 189), Missouri
+## Project Status
 
-## Team
-
-- **Israel Chavez** - israel.chavez7272@gmail.com
-- **Eric Wismar** - eric.wismar@gmail.com
-- **Mahfud Bouad** - mahfoudbouad@gmail.com
+✅ Full data coverage: 314 City + 748 County = 1,062 block groups
+✅ Complete API endpoints
+✅ Interactive React web app with mobile support
+✅ Responsive sidebar with mobile drawer
+✅ Real-time optimization
 
 ## License
+
+Internal project - St. Louis disaster relief optimization.

@@ -12,17 +12,47 @@ STL Site Optimizer is a Python-based geospatial analysis tool for identifying op
 - Centralized Snowflake data warehouse for scalable operations
 - Interactive map visualization with demographic popups
 
+## Applications
+
+### Main App: React Web Application (`web/`)
+
+**Primary entry point for users.** Interactive web app with deck.gl map visualization, real-time controls, and responsive mobile design.
+
+- **Frontend**: React + Vite + Material UI + deck.gl
+- **Backend**: FastAPI + Snowflake connector
+- **Features**: Click-to-select block groups, greedy optimization algorithm, live results display
+- **Setup**: See `web/README.md`
+
+### Legacy: Python Streamlit App (`archive/streamlit.py`)
+
+Historical reference implementation. Fully functional but deprecated in favor of the React web app. Uses PyDeck for map visualization.
+
+---
+
 ## Development Environment
 
-### Setup
+### Backend Setup (Python)
 
 ```bash
-# Install dependencies
+# For web app backend
+cd web/backend
+python -m venv venv
+venv\Scripts\activate  # Windows or source venv/bin/activate
 pip install -r requirements.txt
+uvicorn app.main:app --reload --port 8000
 
-# Configure Snowflake (optional, if using Snowflake integration)
+# Configure Snowflake credentials
 cp .env.example .env
 # Edit .env with your Snowflake credentials
+```
+
+### Frontend Setup (React)
+
+```bash
+# For web app frontend
+cd web/frontend
+npm install
+npm run dev  # Starts dev server on http://localhost:3000
 ```
 
 ### Required Data in Snowflake
