@@ -63,7 +63,7 @@ def main():
         print(f"Uploading to {args.table} ({if_exists} mode)...")
         client.write_table(df, args.table, if_exists=if_exists)
 
-        print(f"✓ Successfully uploaded {len(df)} rows to {args.table}")
+        print(f"[SUCCESS] Uploaded {len(df)} rows to {args.table}")
         print(f"\nData summary:")
         print(f"  Total population: {df['POP'].sum():,.0f}")
         print(f"  Block groups: {len(df)}")
