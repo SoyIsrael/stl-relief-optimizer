@@ -90,21 +90,22 @@ def greedy_max_coverage(demand, candidates, radius_miles, k):
 def build_polygons(boundaries):
     rows = []
     for _, r in boundaries.iterrows():
-        if not r.geom_geojson:
+        geom_json = r['geom_geojson'] if 'geom_geojson' in r else None
+        if not geom_json:
             continue
         try:
-            geom = json.loads(r.geom_geojson) if isinstance(r.geom_geojson, str) else r.geom_geojson
+            geom = json.loads(geom_json) if isinstance(geom_json, str) else geom_json
             if geom["type"] == "Polygon":
                 rows.append({
-                    "geoid": r.GEOID,
-                    "pop": r.POP,
+                    "geoid": r['GEOID'],
+                    "pop": r['POP'],
                     "polygon": geom["coordinates"][0]
                 })
             elif geom["type"] == "MultiPolygon":
                 for p in geom["coordinates"]:
                     rows.append({
-                        "geoid": r.GEOID,
-                        "pop": r.POP,
+                        "geoid": r['GEOID'],
+                        "pop": r['POP'],
                         "polygon": p[0]
                     })
         except Exception:
