@@ -94,22 +94,32 @@ def build_polygons(boundaries):
         if not geom_json:
             continue
         try:
-            geom = json.loads(geom_json) if isinstance(geom_json, str) else geom_json
-            if geom["type"] == "Polygon":
+            # Handle both string and dict formats from Snowflake VARIANT
+            if isinstance(geom_json, str):
+                geom = json.loads(geom_json)
+            else:
+                geom = geom_json
+
+            if geom.get("type") == "Polygon":
                 rows.append({
                     "geoid": r['GEOID'],
                     "pop": r['POP'],
                     "polygon": geom["coordinates"][0]
                 })
-            elif geom["type"] == "MultiPolygon":
+            elif geom.get("type") == "MultiPolygon":
                 for p in geom["coordinates"]:
                     rows.append({
                         "geoid": r['GEOID'],
                         "pop": r['POP'],
                         "polygon": p[0]
                     })
-        except Exception:
-            pass
+        except Exception as e:
+            st.warning(f"Failed to parse geometry for {r.get('GEOID', 'unknown')}: {e}")
+
+    if not rows:
+        st.error("No valid polygons found in boundaries data. Check geometry format.")
+        return pd.DataFrame(columns=["geoid", "pop", "polygon"])
+
     return pd.DataFrame(rows)
 
 # -----------------------------
@@ -246,40 +256,45 @@ col4.metric("Centers Selected", len(selected_sites))
 layers = []
 
 polys = build_polygons(boundaries)
-polys["selected"] = polys["geoid"].isin(affected_geoids)
-polys["NAME"] = "Tract " + polys["geoid"].astype(str)
-polys["TYPE_DISPLAY"] = "Census Tract (Pop: " + polys["pop"].astype(int).astype(str) + ")"
 
-# Base polygons (unselected) - low opacity to show base map
-layers.append(
-    pdk.Layer(
-        "PolygonLayer",
-        polys[~polys["selected"]],
-        get_polygon="polygon",
-        filled=True,
-        stroked=True,
-        get_fill_color=[200, 200, 200, 40],
-        get_line_color=[150, 150, 150],
-        get_line_width=20,
-        pickable=True,
-        auto_highlight=True,
-    )
-)
+# Check if we have valid polygons
+if len(polys) == 0:
+    st.warning("No polygons available for display. The geometries may not have loaded correctly from Snowflake.")
+else:
+    polys["selected"] = polys["geoid"].isin(affected_geoids)
+    polys["NAME"] = "Tract " + polys["geoid"].astype(str)
+    polys["TYPE_DISPLAY"] = "Census Tract (Pop: " + polys["pop"].astype(int).astype(str) + ")"
 
-# Selected polygons (affected areas)
-layers.append(
-    pdk.Layer(
-        "PolygonLayer",
-        polys[polys["selected"]],
-        get_polygon="polygon",
-        filled=True,
-        stroked=True,
-        get_fill_color=[255, 140, 0, 80],
-        get_line_color=[255, 100, 0],
-        get_line_width=40,
-        pickable=True,
+    # Base polygons (unselected) - low opacity to show base map
+    layers.append(
+        pdk.Layer(
+            "PolygonLayer",
+            polys[~polys["selected"]],
+            get_polygon="polygon",
+            filled=True,
+            stroked=True,
+            get_fill_color=[200, 200, 200, 40],
+            get_line_color=[150, 150, 150],
+            get_line_width=20,
+            pickable=True,
+            auto_highlight=True,
+        )
     )
-)
+
+    # Selected polygons (affected areas)
+    layers.append(
+        pdk.Layer(
+            "PolygonLayer",
+            polys[polys["selected"]],
+            get_polygon="polygon",
+            filled=True,
+            stroked=True,
+            get_fill_color=[255, 140, 0, 80],
+            get_line_color=[255, 100, 0],
+            get_line_width=40,
+            pickable=True,
+        )
+    )
 
 # Demand centroids
 if len(demand) > 0:
