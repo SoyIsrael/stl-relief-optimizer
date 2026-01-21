@@ -15,9 +15,10 @@ session = get_active_session()
 
 # -----------------------------
 # Table names (EDIT IF NEEDED)
+# Updated for block group architecture (2025)
 # -----------------------------
-BOUNDARIES_TABLE = "BOUNDARIES"
-POPS_TABLE = "POPS"
+BOUNDARIES_TABLE = "BLOCK_GROUP_BOUNDARIES"
+POPS_TABLE = "BLOCK_GROUP_DEMOGRAPHICS"
 CANDIDATES_TABLE = "CANDIDATE_SITES"
 
 # -----------------------------
