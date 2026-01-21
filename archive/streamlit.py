@@ -89,19 +89,7 @@ def greedy_max_coverage(demand, candidates, radius_miles, k):
 
 def build_polygons(boundaries):
     rows = []
-    debug_info = []
-
-    for idx, (_, r) in enumerate(boundaries.iterrows()):
-        if idx == 0:
-            # Debug first row to see data structure
-            debug_info.append(f"Columns: {list(r.index)}")
-            debug_info.append(f"GEOID sample: {r.get('GEOID', 'N/A')}")
-            geom_col = r.get('GEOM_GEOJSON')
-            debug_info.append(f"GEOM_GEOJSON type: {type(geom_col)}")
-            debug_info.append(f"GEOM_GEOJSON is None: {geom_col is None}")
-            debug_info.append(f"GEOM_GEOJSON is NaN: {pd.isna(geom_col)}")
-            debug_info.append(f"GEOM_GEOJSON value: {str(geom_col)[:200] if geom_col is not None and not pd.isna(geom_col) else 'NULL/NAN'}")
-
+    for _, r in boundaries.iterrows():
         # Use uppercase column name GEOM_GEOJSON
         geom_json = r['GEOM_GEOJSON'] if 'GEOM_GEOJSON' in r else None
         # Check for both None and NaN
@@ -110,10 +98,8 @@ def build_polygons(boundaries):
         try:
             # Handle both string and dict formats from Snowflake VARIANT
             if isinstance(geom_json, str):
-                # Try to parse JSON
                 geom = json.loads(geom_json)
             else:
-                # Assume it's already a dict
                 geom = geom_json
 
             # Check geometry type
@@ -130,15 +116,10 @@ def build_polygons(boundaries):
                         "pop": r['POP'],
                         "polygon": p[0]
                     })
-        except Exception as e:
-            if idx < 3:  # Only show first 3 errors
-                debug_info.append(f"Row {idx} error: {str(e)[:100]}")
-
-    if debug_info:
-        st.info("\n".join(debug_info))
+        except Exception:
+            pass
 
     if not rows:
-        st.error("No valid polygons found in boundaries data. Check geometry format.")
         return pd.DataFrame(columns=["geoid", "pop", "polygon"])
 
     return pd.DataFrame(rows)
