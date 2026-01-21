@@ -96,11 +96,16 @@ def build_polygons(boundaries):
             # Debug first row to see data structure
             debug_info.append(f"Columns: {list(r.index)}")
             debug_info.append(f"GEOID sample: {r.get('GEOID', 'N/A')}")
-            debug_info.append(f"geom_geojson type: {type(r.get('geom_geojson', 'N/A'))}")
-            debug_info.append(f"geom_geojson value: {str(r.get('geom_geojson', 'N/A'))[:200]}")
+            geom_col = r.get('GEOM_GEOJSON')
+            debug_info.append(f"GEOM_GEOJSON type: {type(geom_col)}")
+            debug_info.append(f"GEOM_GEOJSON is None: {geom_col is None}")
+            debug_info.append(f"GEOM_GEOJSON is NaN: {pd.isna(geom_col)}")
+            debug_info.append(f"GEOM_GEOJSON value: {str(geom_col)[:200] if geom_col is not None and not pd.isna(geom_col) else 'NULL/NAN'}")
 
-        geom_json = r['geom_geojson'] if 'geom_geojson' in r else None
-        if not geom_json:
+        # Use uppercase column name GEOM_GEOJSON
+        geom_json = r['GEOM_GEOJSON'] if 'GEOM_GEOJSON' in r else None
+        # Check for both None and NaN
+        if geom_json is None or pd.isna(geom_json):
             continue
         try:
             # Handle both string and dict formats from Snowflake VARIANT
@@ -144,7 +149,7 @@ def build_polygons(boundaries):
 boundaries = session.sql(f"""
     SELECT
         TO_VARCHAR(b.GEOID) AS GEOID,
-        b."geom_geojson" AS geom_geojson,
+        b."geom_geojson" AS GEOM_GEOJSON,
         b."lat"::FLOAT AS LAT,
         b."lon"::FLOAT AS LON,
         COALESCE(p.POP::FLOAT, 0) AS POP
