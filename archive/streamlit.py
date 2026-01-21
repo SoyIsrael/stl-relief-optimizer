@@ -89,24 +89,36 @@ def greedy_max_coverage(demand, candidates, radius_miles, k):
 
 def build_polygons(boundaries):
     rows = []
-    for _, r in boundaries.iterrows():
+    debug_info = []
+
+    for idx, (_, r) in enumerate(boundaries.iterrows()):
+        if idx == 0:
+            # Debug first row to see data structure
+            debug_info.append(f"Columns: {list(r.index)}")
+            debug_info.append(f"GEOID sample: {r.get('GEOID', 'N/A')}")
+            debug_info.append(f"geom_geojson type: {type(r.get('geom_geojson', 'N/A'))}")
+            debug_info.append(f"geom_geojson value: {str(r.get('geom_geojson', 'N/A'))[:200]}")
+
         geom_json = r['geom_geojson'] if 'geom_geojson' in r else None
         if not geom_json:
             continue
         try:
             # Handle both string and dict formats from Snowflake VARIANT
             if isinstance(geom_json, str):
+                # Try to parse JSON
                 geom = json.loads(geom_json)
             else:
+                # Assume it's already a dict
                 geom = geom_json
 
-            if geom.get("type") == "Polygon":
+            # Check geometry type
+            if isinstance(geom, dict) and geom.get("type") == "Polygon":
                 rows.append({
                     "geoid": r['GEOID'],
                     "pop": r['POP'],
                     "polygon": geom["coordinates"][0]
                 })
-            elif geom.get("type") == "MultiPolygon":
+            elif isinstance(geom, dict) and geom.get("type") == "MultiPolygon":
                 for p in geom["coordinates"]:
                     rows.append({
                         "geoid": r['GEOID'],
@@ -114,7 +126,11 @@ def build_polygons(boundaries):
                         "polygon": p[0]
                     })
         except Exception as e:
-            st.warning(f"Failed to parse geometry for {r.get('GEOID', 'unknown')}: {e}")
+            if idx < 3:  # Only show first 3 errors
+                debug_info.append(f"Row {idx} error: {str(e)[:100]}")
+
+    if debug_info:
+        st.info("\n".join(debug_info))
 
     if not rows:
         st.error("No valid polygons found in boundaries data. Check geometry format.")
