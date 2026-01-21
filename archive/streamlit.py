@@ -140,14 +140,7 @@ boundaries = session.sql(f"""
         b."geom_geojson" AS GEOM_GEOJSON,
         b."lat"::FLOAT AS LAT,
         b."lon"::FLOAT AS LON,
-        COALESCE(p.POP::FLOAT, 0) AS POP,
-        COALESCE(p.MEDIAN_HH_INCOME, 0) AS Median_HH_Income,
-        COALESCE(p.LOW_INCOME_RATE, 0) AS Low_Income_Rate,
-        COALESCE(p.CHILD_DEPENDENCY_RATE, 0) AS Child_Dependency_Rate,
-        COALESCE(p.ELDERLY_DEPENDENCY_RATE, 0) AS Elderly_Dependency_Rate,
-        COALESCE(p.RENTER_RATE, 0) AS Renter_Rate,
-        COALESCE(p.NO_INTERNET_RATE, 0) AS No_Internet_Rate,
-        COALESCE(p.NO_CAR_RATE, 0) AS No_Car_Rate
+        COALESCE(p.POP::FLOAT, 0) AS POP
     FROM {BOUNDARIES_TABLE} b
     LEFT JOIN {POPS_TABLE} p
       ON TO_VARCHAR(b.GEOID) = TO_VARCHAR(p.GEOID)
@@ -157,14 +150,7 @@ boundaries = session.sql(f"""
         b."geom_geojson" AS GEOM_GEOJSON,
         b."lat"::FLOAT AS LAT,
         b."lon"::FLOAT AS LON,
-        COALESCE(p.POP::FLOAT, 0) AS POP,
-        COALESCE(p.MEDIAN_HH_INCOME, 0) AS Median_HH_Income,
-        COALESCE(p.LOW_INCOME_RATE, 0) AS Low_Income_Rate,
-        COALESCE(p.CHILD_DEPENDENCY_RATE, 0) AS Child_Dependency_Rate,
-        COALESCE(p.ELDERLY_DEPENDENCY_RATE, 0) AS Elderly_Dependency_Rate,
-        COALESCE(p.RENTER_RATE, 0) AS Renter_Rate,
-        COALESCE(p.NO_INTERNET_RATE, 0) AS No_Internet_Rate,
-        COALESCE(p.NO_CAR_RATE, 0) AS No_Car_Rate
+        COALESCE(p.POP::FLOAT, 0) AS POP
     FROM {BOUNDARIES_TABLE} b
     LEFT JOIN {POPS_COUNTY_TABLE} p
       ON TO_VARCHAR(b.GEOID) = TO_VARCHAR(p.GEOID)
@@ -261,58 +247,11 @@ candidates_filtered = candidates[candidates["TYPE"].isin(site_types)].copy()
 # -----------------------------
 demand = boundaries[boundaries["GEOID"].isin(affected_geoids)].copy()
 
-# Display vulnerability metrics for affected areas
+# Display affected areas summary
 if len(affected_geoids) > 0:
-    st.subheader("Vulnerability Metrics - Affected Areas")
-
-    # Check for missing population data
-    missing_pop = demand[demand["POP"].isna() | (demand["POP"] == 0)]
-    if len(missing_pop) > 0:
-        st.warning(f"⚠️ {len(missing_pop)} selected areas have no population data. They may not have matched with demographics table.")
-
-    # Key vulnerability columns from BLOCK_GROUP_DEMOGRAPHICS
-    vuln_cols = {
-        "POP": "Total Population",
-        "Median_HH_Income": "Median HH Income ($)",
-        "Low_Income_Rate": "Low Income Rate (%)",
-        "Child_Dependency_Rate": "Child Dependency (%)",
-        "Elderly_Dependency_Rate": "Elderly Dependency (%)",
-        "Renter_Rate": "Renter Rate (%)",
-        "No_Internet_Rate": "No Internet Rate (%)",
-        "No_Car_Rate": "No Car Rate (%)"
-    }
-
-    # Show aggregate metrics
-    metrics_data = []
-    for col_name, display_name in vuln_cols.items():
-        if col_name in demand.columns:
-            values = pd.to_numeric(demand[col_name], errors='coerce')
-            avg_val = values.mean()
-            if "Rate" in display_name or "(%)" in display_name:
-                metrics_data.append(f"{display_name}: {avg_val:.1f}%")
-            elif "$" in display_name:
-                metrics_data.append(f"{display_name}: ${avg_val:,.0f}")
-            else:
-                metrics_data.append(f"{display_name}: {avg_val:,.0f}")
-
-    col1, col2, col3, col4 = st.columns(4)
-    for i, metric_text in enumerate(metrics_data):
-        if i < 4:
-            if i % 4 == 0:
-                col1.metric(metric_text.split(":")[0], metric_text.split(":")[1].strip())
-            elif i % 4 == 1:
-                col2.metric(metric_text.split(":")[0], metric_text.split(":")[1].strip())
-            elif i % 4 == 2:
-                col3.metric(metric_text.split(":")[0], metric_text.split(":")[1].strip())
-            else:
-                col4.metric(metric_text.split(":")[0], metric_text.split(":")[1].strip())
-
-    # Display detailed table
-    with st.expander("View detailed vulnerability data"):
-        detail_cols = ["GEOID", "POP", "Median_HH_Income", "Low_Income_Rate",
-                       "Child_Dependency_Rate", "Elderly_Dependency_Rate", "No_Internet_Rate"]
-        available_cols = [c for c in detail_cols if c in demand.columns]
-        st.dataframe(demand[available_cols], use_container_width=True)
+    st.subheader("Selected Areas Summary")
+    total_selected_pop = demand["POP"].sum()
+    st.info(f"Selected {len(affected_geoids)} block groups with {total_selected_pop:,.0f} people")
 
 # -----------------------------
 # Run simulation
