@@ -44,6 +44,7 @@ Thumbs.db
 
 # Claude Code
 .claude/
+CLAUDE.md
 
 # Node.js dependencies
 node_modules/
