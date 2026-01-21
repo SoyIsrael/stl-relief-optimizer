@@ -106,8 +106,8 @@ class SnowflakeClient:
         """Fetch candidate sites from Snowflake."""
         return self.read_table(table_name)
 
-    def get_tract_info(self, table_name: str = "POPS") -> pd.DataFrame:
-        """Fetch tract population info from Snowflake."""
+    def get_tract_info(self, table_name: str = "BLOCK_GROUP_DEMOGRAPHICS") -> pd.DataFrame:
+        """Fetch block group demographics and vulnerability data from Snowflake."""
         return self.read_table(table_name)
 
     def get_boundaries(self, table_name: str = "BOUNDARIES") -> pd.DataFrame:

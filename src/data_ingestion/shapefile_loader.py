@@ -1,4 +1,4 @@
-"""Load and filter census tract shapefiles."""
+"""Load and filter census tract and block group shapefiles."""
 from pathlib import Path
 import geopandas as gpd
 
@@ -28,6 +28,36 @@ def load_stl_tracts(
     return stl.to_crs(epsg=4326)
 
 
+def load_stl_block_groups(
+    shapefile_path: str | Path,
+    city_fips: str = "510",
+    county_fips: str = "189",
+) -> gpd.GeoDataFrame:
+    """
+    Load Missouri census block groups and filter to St. Louis City/County.
+
+    Args:
+        shapefile_path: Path to the tl_2020_29_bg.shp file
+        city_fips: FIPS code for St. Louis City (default: "510")
+        county_fips: FIPS code for St. Louis County (default: "189")
+
+    Returns:
+        GeoDataFrame of St. Louis block groups in EPSG:4326
+    """
+    bgs = gpd.read_file(shapefile_path)
+
+    stl = bgs[
+        (bgs["COUNTYFP"] == city_fips) | (bgs["COUNTYFP"] == county_fips)
+    ].copy()
+
+    return stl.to_crs(epsg=4326)
+
+
 def get_default_shapefile_path() -> Path:
-    """Return the default path to the shapefile in data/raw/."""
+    """Return the default path to the tract shapefile in data/raw/."""
     return Path(__file__).parent.parent.parent / "data" / "raw" / "tl_2020_29_tract.shp"
+
+
+def get_default_block_group_shapefile_path() -> Path:
+    """Return the default path to the block group shapefile in data/raw/."""
+    return Path(__file__).parent.parent.parent / "data" / "raw" / "tl_2020_29_bg.shp"

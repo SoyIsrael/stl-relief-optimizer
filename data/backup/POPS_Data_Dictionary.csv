@@ -1,0 +1,36 @@
+Variable_Name,Category,Subcategory,Data_Type,Definition,Optimizer_Use,Source_Table
+GEOID,Core,Identifier,String,12-digit geographic identifier: State(2) + County(3) + Tract(6) + Block Group(1),Primary key for joining with spatial boundaries,Derived
+Location,Core,Identifier,String,Human-readable location description,Human verification only,Derived
+POP,Core Population,Population Count,Integer,Total population count for the block group,BASELINE: Current optimizer uses this for coverage calculation,B01003
+Total_Households,Economic Stress,Household Count,Integer,Total number of households in the block group,Context/denominator,B19001
+Median_HH_Income,Economic Stress,Income Level,Integer,Median annual household income in dollars,Future: Inverse weighting (lower = more vulnerable),B19013
+Low_Income_HH,Economic Stress,Low Income,Integer,"Households with annual income less than $25,000",Future: Weight population for economic vulnerability,B19001 (aggregated)
+Low_Income_Rate,Economic Stress,Low Income Rate,Float,"Proportion of households with income less than $25,000 (Low_Income_HH / Total_Households)",Future: Normalized vulnerability factor (0-1 scale),Derived
+HH_SNAP,Economic Stress,Food Assistance,Integer,Households receiving Supplemental Nutrition Assistance Program (SNAP) benefits,Future: Weight population for food insecurity,B22010
+SNAP_Rate,Economic Stress,Food Assistance Rate,Float,Proportion of households receiving SNAP benefits (HH_SNAP / Total_Households),Future: Normalized vulnerability factor (0-1 scale),Derived
+HH_Public_Assistance,Economic Stress,Public Assistance,Integer,Households receiving public assistance income,Future: Weight population for public assistance need,B19057
+Public_Assistance_Rate,Economic Stress,Public Assistance Rate,Float,Proportion of households receiving public assistance (HH_Public_Assistance / Total_Households),Future: Normalized vulnerability factor (0-1 scale),Derived
+Children_0_17,Age Dependency,Total Children,Integer,Total population age 0 to 17 years,Future: Weight population for child vulnerability,B01001 (aggregated)
+Children_0_4,Age Dependency,Young Children,Integer,Population age 0 to 4 years,Future: Weight population for young child vulnerability,B01001 (aggregated)
+Children_5_17,Age Dependency,School Age,Integer,Population age 5 to 17 years,Future: Weight population for school-age vulnerability,B01001 (aggregated)
+Child_Dependency_Rate,Age Dependency,Child Rate,Float,Proportion of population age 0 to 17 (Children_0_17 / POP),Future: Normalized vulnerability factor (0-1 scale),Derived
+Elderly_65_Plus,Age Dependency,Total Elderly,Integer,Total population age 65 years and older,Future: Weight population for elderly vulnerability,B01001 (aggregated)
+Elderly_65_74,Age Dependency,Young Elderly,Integer,Population age 65 to 74 years,Future: Weight population for younger elderly,B01001 (aggregated)
+Elderly_75_Plus,Age Dependency,Older Elderly,Integer,Population age 75 years and older,Future: Weight population for older elderly,B01001 (aggregated)
+Elderly_Dependency_Rate,Age Dependency,Elderly Rate,Float,Proportion of population age 65 and older (Elderly_65_Plus / POP),Future: Normalized vulnerability factor (0-1 scale),Derived
+Total_Dependency_Rate,Age Dependency,Total Dependency,Float,Proportion of dependent population (Children_0_17 + Elderly_65_Plus) / POP,Future: Composite dependency vulnerability factor,Derived
+HH_With_Children,Household Composition,Family Structure,Integer,Households with one or more children under 18,Future: Weight population for family burden,B11005
+HH_With_Children_Rate,Household Composition,Family Structure Rate,Float,Proportion of households with children (HH_With_Children / Total_Households),Future: Normalized vulnerability factor (0-1 scale),Derived
+Single_Parent_HH,Household Composition,Single Parent,Integer,Single-parent households with children,Future: Weight population for single-parent vulnerability,B11003
+Single_Parent_Rate,Household Composition,Single Parent Rate,Float,Proportion of single-parent households (Single_Parent_HH / Total_Households),Future: Normalized vulnerability factor (0-1 scale),Derived
+Renter_Occupied,Housing Vulnerability,Tenure,Integer,Renter-occupied housing units,Future: Weight population for renter vulnerability,B25003
+Renter_Rate,Housing Vulnerability,Tenure Rate,Float,Proportion of occupied units that are renter-occupied (Renter_Occupied / Occupied_Housing_Units),Future: Normalized vulnerability factor (0-1 scale),Derived
+Vacant_Housing_Units,Housing Vulnerability,Vacancy,Integer,Vacant housing units,Future: Weight population for neighborhood instability,B25002
+Vacancy_Rate,Housing Vulnerability,Vacancy Rate,Float,Proportion of total housing units that are vacant (Vacant_Housing_Units / Total_Housing_Units),Future: Normalized vulnerability factor (0-1 scale),Derived
+Built_Before_1940,Housing Vulnerability,Housing Age,Integer,Housing units built before 1940,Future: Weight population for structural vulnerability,B25034
+Old_Housing_Rate,Housing Vulnerability,Housing Age Rate,Float,Proportion of housing units built before 1940 (Built_Before_1940 / Housing_Age_Universe),Future: Normalized vulnerability factor (0-1 scale),Derived
+Total_Workers,Infrastructure & Access,Transportation,Integer,Workers age 16 years and older,Context/denominator,B08301
+Workers_No_Car,Infrastructure & Access,Transportation,Integer,Workers who do not drive alone to work (proxy for no private vehicle access),Future: Weight population for transportation vulnerability,Derived
+No_Car_Rate,Infrastructure & Access,Transportation Rate,Float,Proportion of workers without private vehicle access (Workers_No_Car / Total_Workers),Future: Normalized vulnerability factor (0-1 scale),Derived
+HH_No_Internet,Infrastructure & Access,Communication,Integer,Households without an internet subscription,Future: Weight population for communication vulnerability,B28002
+No_Internet_Rate,Infrastructure & Access,Communication Rate,Float,Proportion of households without internet (HH_No_Internet / Total_Households),Future: Normalized vulnerability factor (0-1 scale),Derived

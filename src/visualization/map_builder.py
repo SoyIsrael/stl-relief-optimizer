@@ -9,22 +9,46 @@ import pandas as pd
 STL_CENTER = (38.6270, -90.1994)
 
 
+def _build_popup_text(row: pd.Series) -> str:
+    """Build HTML popup text with available demographics."""
+    html = f"<b>GEOID:</b> {row.get('GEOID', 'N/A')}<br>"
+
+    if "Location" in row:
+        html += f"<b>Location:</b> {row['Location']}<br>"
+
+    # Population and key vulnerability metrics
+    fields = ["POP", "Median_HH_Income", "Low_Income_Rate", "Child_Dependency_Rate",
+              "Elderly_Dependency_Rate", "Renter_Rate", "Vacancy_Rate", "No_Internet_Rate"]
+
+    for field in fields:
+        if field in row and pd.notna(row[field]):
+            value = row[field]
+            if isinstance(value, float):
+                if "Rate" in field:
+                    value = f"{value:.1%}"
+                else:
+                    value = f"{value:,.0f}"
+            html += f"<b>{field}:</b> {value}<br>"
+
+    return html
+
+
 def build_stl_map(
-    tracts: gpd.GeoDataFrame,
+    block_groups: gpd.GeoDataFrame,
     candidate_sites: pd.DataFrame | None = None,
     center: tuple = STL_CENTER,
     zoom_start: int = 11,
     show_centroids: bool = True,
 ) -> folium.Map:
     """
-    Build an interactive Folium map of St. Louis tracts and candidate sites.
+    Build an interactive Folium map of St. Louis block groups and candidate sites.
 
     Args:
-        tracts: GeoDataFrame with tract geometries (must have lat/lon for centroids)
+        block_groups: GeoDataFrame with block group geometries and demographics
         candidate_sites: DataFrame with site_id, lat, lon columns
         center: Map center coordinates (lat, lon)
         zoom_start: Initial zoom level
-        show_centroids: Whether to show tract centroid markers
+        show_centroids: Whether to show block group centroid markers
 
     Returns:
         Folium Map object
@@ -35,21 +59,23 @@ def build_stl_map(
         tiles="cartodbpositron",
     )
 
-    # Add tract polygons
-    folium.GeoJson(
-        tracts,
-        style_function=lambda x: {
-            "fillColor": "#ff7800",
-            "color": "black",
-            "weight": 0.5,
-            "fillOpacity": 0.3,
-        },
-        tooltip=folium.GeoJsonTooltip(fields=["GEOID"]),
-    ).add_to(m)
+    # Add block group polygons with popup showing demographics
+    for _, row in block_groups.iterrows():
+        popup_text = _build_popup_text(row)
+        folium.GeoJson(
+            gpd.GeoSeries(row.geometry).__geo_interface__,
+            style_function=lambda x: {
+                "fillColor": "#ff7800",
+                "color": "black",
+                "weight": 0.5,
+                "fillOpacity": 0.3,
+            },
+            popup=folium.Popup(popup_text, max_width=300),
+        ).add_to(m)
 
-    # Add tract centroids
-    if show_centroids and "lat" in tracts.columns:
-        for _, row in tracts.iterrows():
+    # Add block group centroids
+    if show_centroids and "lat" in block_groups.columns:
+        for _, row in block_groups.iterrows():
             folium.CircleMarker(
                 location=[row["lat"], row["lon"]],
                 radius=2,
