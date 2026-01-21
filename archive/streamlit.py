@@ -90,10 +90,10 @@ def greedy_max_coverage(demand, candidates, radius_miles, k):
 def build_polygons(boundaries):
     rows = []
     for _, r in boundaries.iterrows():
-        if not r.GEOM_GEOJSON:
+        if not r.geom_geojson:
             continue
         try:
-            geom = json.loads(r.GEOM_GEOJSON)
+            geom = json.loads(r.geom_geojson) if isinstance(r.geom_geojson, str) else r.geom_geojson
             if geom["type"] == "Polygon":
                 rows.append({
                     "geoid": r.GEOID,
@@ -117,9 +117,9 @@ def build_polygons(boundaries):
 boundaries = session.sql(f"""
     SELECT
         TO_VARCHAR(b.GEOID) AS GEOID,
-        b.GEOM_GEOJSON,
-        b.LAT::FLOAT AS LAT,
-        b.LON::FLOAT AS LON,
+        b.geom_geojson,
+        b.lat::FLOAT AS LAT,
+        b.lon::FLOAT AS LON,
         COALESCE(p.POP::FLOAT, 0) AS POP
     FROM {BOUNDARIES_TABLE} b
     LEFT JOIN {POPS_TABLE} p
