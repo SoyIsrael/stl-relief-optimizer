@@ -141,13 +141,13 @@ boundaries = session.sql(f"""
         b."lat"::FLOAT AS LAT,
         b."lon"::FLOAT AS LON,
         COALESCE(p.POP::FLOAT, 0) AS POP,
-        COALESCE(p.Median_HH_Income, 0) AS Median_HH_Income,
-        COALESCE(p.Low_Income_Rate, 0) AS Low_Income_Rate,
-        COALESCE(p.Child_Dependency_Rate, 0) AS Child_Dependency_Rate,
-        COALESCE(p.Elderly_Dependency_Rate, 0) AS Elderly_Dependency_Rate,
-        COALESCE(p.Renter_Rate, 0) AS Renter_Rate,
-        COALESCE(p.No_Internet_Rate, 0) AS No_Internet_Rate,
-        COALESCE(p.No_Car_Rate, 0) AS No_Car_Rate
+        COALESCE(p.MEDIAN_HH_INCOME, 0) AS Median_HH_Income,
+        COALESCE(p.LOW_INCOME_RATE, 0) AS Low_Income_Rate,
+        COALESCE(p.CHILD_DEPENDENCY_RATE, 0) AS Child_Dependency_Rate,
+        COALESCE(p.ELDERLY_DEPENDENCY_RATE, 0) AS Elderly_Dependency_Rate,
+        COALESCE(p.RENTER_RATE, 0) AS Renter_Rate,
+        COALESCE(p.NO_INTERNET_RATE, 0) AS No_Internet_Rate,
+        COALESCE(p.NO_CAR_RATE, 0) AS No_Car_Rate
     FROM {BOUNDARIES_TABLE} b
     LEFT JOIN {POPS_TABLE} p
       ON TO_VARCHAR(b.GEOID) = TO_VARCHAR(p.GEOID)
@@ -158,13 +158,13 @@ boundaries = session.sql(f"""
         b."lat"::FLOAT AS LAT,
         b."lon"::FLOAT AS LON,
         COALESCE(p.POP::FLOAT, 0) AS POP,
-        COALESCE(p.Median_HH_Income, 0) AS Median_HH_Income,
-        COALESCE(p.Low_Income_Rate, 0) AS Low_Income_Rate,
-        COALESCE(p.Child_Dependency_Rate, 0) AS Child_Dependency_Rate,
-        COALESCE(p.Elderly_Dependency_Rate, 0) AS Elderly_Dependency_Rate,
-        COALESCE(p.Renter_Rate, 0) AS Renter_Rate,
-        COALESCE(p.No_Internet_Rate, 0) AS No_Internet_Rate,
-        COALESCE(p.No_Car_Rate, 0) AS No_Car_Rate
+        COALESCE(p.MEDIAN_HH_INCOME, 0) AS Median_HH_Income,
+        COALESCE(p.LOW_INCOME_RATE, 0) AS Low_Income_Rate,
+        COALESCE(p.CHILD_DEPENDENCY_RATE, 0) AS Child_Dependency_Rate,
+        COALESCE(p.ELDERLY_DEPENDENCY_RATE, 0) AS Elderly_Dependency_Rate,
+        COALESCE(p.RENTER_RATE, 0) AS Renter_Rate,
+        COALESCE(p.NO_INTERNET_RATE, 0) AS No_Internet_Rate,
+        COALESCE(p.NO_CAR_RATE, 0) AS No_Car_Rate
     FROM {BOUNDARIES_TABLE} b
     LEFT JOIN {POPS_COUNTY_TABLE} p
       ON TO_VARCHAR(b.GEOID) = TO_VARCHAR(p.GEOID)
