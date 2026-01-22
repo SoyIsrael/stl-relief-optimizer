@@ -65,7 +65,7 @@ Open http://localhost:3000 to access the app.
 │   └── upload_pops_data.py      # Load demographics to Snowflake
 │
 └── archive/                      # Historical reference
-    └── streamlit.py              # Legacy Streamlit app
+    └── streamlit.py              # Older Streamlit app
 ```
 
 ## Data Setup
@@ -90,11 +90,8 @@ cp .env.example .env
 
 ## Development
 
-See `CLAUDE.md` for detailed architecture and development notes.
-
 ### Key Files
 - `web/README.md` - Web app setup and API reference
-- `CLAUDE.md` - Full architecture and development guide
 - `.env.example` - Snowflake configuration template
 
 ## Algorithm
