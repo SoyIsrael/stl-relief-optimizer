@@ -90,8 +90,6 @@ cp .env.example .env
 
 ## Development
 
-See `CLAUDE.md` for detailed architecture and development notes.
-
 ### Key Files
 - `web/README.md` - Web app setup and API reference
 - `CLAUDE.md` - Full architecture and development guide
