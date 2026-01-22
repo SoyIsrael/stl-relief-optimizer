@@ -65,7 +65,7 @@ Open http://localhost:3000 to access the app.
 │   └── upload_pops_data.py      # Load demographics to Snowflake
 │
 └── archive/                      # Historical reference
-    └── streamlit.py              # Legacy Streamlit app
+    └── streamlit.py              # Older Streamlit app
 ```
 
 ## Data Setup
