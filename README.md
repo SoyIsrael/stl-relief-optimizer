@@ -92,7 +92,6 @@ cp .env.example .env
 
 ### Key Files
 - `web/README.md` - Web app setup and API reference
-- `CLAUDE.md` - Full architecture and development guide
 - `.env.example` - Snowflake configuration template
 
 ## Algorithm
